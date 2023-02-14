@@ -1,2 +1,2 @@
-# Brandon-Ong
-Personal Repository
+# Minimum Variance Portfolio with Regularisation
+This project entails using historical data and supervised learning to find the weights which will comprise of the minimum variance portfolio and the bias-variance tradeoff of regularisation.

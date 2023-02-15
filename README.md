@@ -10,8 +10,8 @@ Currently I am working/learning more on:
 
   Python: Pyspark & Tensorflow
   
-  C++: Syntax
+  C++
   
-  Java: Syntax
+  Java
   
 Thank you for visiting.

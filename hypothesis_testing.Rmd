@@ -1,0 +1,170 @@
+---
+title: "HW2 (Individual)"
+#author: "null"
+#date: "null"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999) # suppressing scientific notation
+set.seed(1) # do not remove this code
+```
+
+
+You have developed 2 versions of a webpage, denoted by 0 and 1. You would like to know which version can keep visitors staying longer. You did a pilot study with $N=22$ subjects. You implemented the completely randomized experiment. Hence, half of the subjects (11) were assigned to the control group (0) and the rest were assigned to the treatment group (1). 
+
+**Load the data and print the data. It should have 2 columns. One is the observed value of the sojourn time and the other is the assignment outcome (a binary vector)** 
+```{r}
+df <- read.csv('ExpData_2022-1.csv')
+print(df)
+```
+
+### Fisher Sharp Null Hypothesis (or Exact Null Hypothesis)
+
+Consider the following Null Hypothesis: the version of the webpage in the treatment group increases the sojourn time by 2.13 seconds for all the subjects compared with the version of the webpage in the control group, i.e.,
+
+$H_0: Y_i(1)=Y_i(0)+2.13,~for~all~i~in~\{1,2,...,22\}.$
+
+**Based on this null hypothesis $H_0$, what should be the table that describes the potential outcomes for all subjects in this experiment? Print the table (there should be 4 columns: 1st column displays the observed outcome; 2nd column displays the actual treatment; 3rd column displays the $Y_i(1)$ under $H_0$; 4th column displays the $Y_i(0)$ under $H_0$)**
+```{r}
+df$Y1 <- ifelse(df$Treatment==1, df$observed, df$observed + 2.13)
+df$Y0 <- ifelse(df$Treatment==0, df$observed, df$observed - 2.13)
+print(df)
+```
+
+We choose the test statistic 
+
+$T=\bar{Y}^{obs}_1-\bar{Y}^{obs}_0$.
+
+**Generate the EXACT Probability Distribution of this test statistic $T$ under $H_0$ in a completely randomized experiment with equal number of subjects in each group. Report the total number (denoted as `Num`) of realizations of the randomized assignment vector, quantiles 25%, 50%, 75% of the distribution of the test statistic $T$, and variance. The code may take several minutes to run.**
+```{r message=FALSE, warning=FALSE}
+f <- function(n,m)
+  t(apply(combn(1:n,m=m),2,function(cm) replace(rep(0,n),cm,1)))
+
+vectors <- f(22,11)
+T_results <- c()
+
+for(i in 1:nrow(vectors)) {
+  row <- vectors[i,]
+  YobsT <- mean(df[which(row==1),'Y1'])
+  YobsC <- mean(df[which(row==0),'Y0'])
+  add_in <- YobsT - YobsC
+  T_results <- c(T_results, add_in)
+}
+
+Num <- length(T_results)
+
+print(paste0('total number of realisations ', as.character(Num)))
+print(paste0('quantile 25% is ', as.character(quantile(T_results,0.25))))
+print(paste0('quantile 50% is ', as.character(quantile(T_results,0.5))))
+print(paste0('quantile 75% is ', as.character(quantile(T_results,0.75))))
+print(paste0('var is', as.character(var(T_results))))
+
+```
+**Plot the histogram of this test statistic $T$ with `breaks = 50` (which is a parameter in the `hist` command. See https://www.datamentor.io/r-programming/histogram/).**
+```{r}
+hist(T_results,breaks=50)
+```
+
+**Redo (c) but using a Bernoulli trial to do the randomized assignment, i.e., flipping an unbiased coin to determine each subject's group. Repeat the procedure `Num` times (you may want to check the Rnotebook file Week5.Rmd on Canvas). Report the quantiles 25%, 50%, 75% of the distribution of the test statistic $T$, and variance. Compare the results with (c) and describe your findings. Note that if you encounter a situation where all subjects are assigned to one group (which could happen with non-zero probability in theory), then the value $Y^{obs}$ in the other group is 0.**
+```{r message=FALSE, warning=FALSE}
+T_results_2 <- c()
+library('mc2d')  
+
+Rep = Num
+Diff = rep(0,Rep)
+for (i in seq(1,Rep,1)){
+  Index = rbern(22, 0.5)
+  YobsT_2 <- mean(df[which(Index==1),'Y1'])
+  YobsC_2 <- mean(df[which(Index==0),'Y0'])
+  add_in_2 <- YobsT_2 - YobsC_2
+  T_results_2 <- c(T_results_2, add_in_2)
+}
+
+print(paste0('quantile 25% is ', as.character(quantile(T_results_2,0.25))))
+print(paste0('quantile 50% is ', as.character(quantile(T_results_2,0.5))))
+print(paste0('quantile 75% is ', as.character(quantile(T_results_2,0.75))))
+print(paste0('var is ', as.character(var(T_results_2))))
+
+print('mean and var is very similar to the test done in (c)')
+```
+
+
+**In the original data that you loaded, what is the value ($t_0$) of this test statistic $T$? If it is positive, then what is $Pr\{T\geq t_0\}$ under $H_0$ based on the EXACT Probability Distribution of $T$ you have derived in the question (c)? If it is negative, then What is $Pr\{T\leq t_0\}$? What do you think about your $H_0$?**
+```{r}
+t0 <- mean(df[which(df['Treatment']==1),'observed']) - mean(df[which(df['Treatment']==0),'observed'])
+t0
+
+mean(T_results <= t0)
+print('we have enough evidence to reject H0 as probability T<=t0 is lower than 0.025')
+```
+
+
+**Print the estimate of the Neyman variance estimator, assuming heterogenous variance. **
+```{r}
+v_t <- var(df[which(df['Treatment']==1),'observed'])
+v_c <- var(df[which(df['Treatment']==0),'observed'])
+
+v_estimator <- v_t/11 + v_c/11
+
+print(paste0('variance estimator is ', v_estimator))
+```
+
+**Using the estimate of the Neyman variance estimator, construct a 95% confidence interval, assuming (standard) normality. Based on this confidence interval you have derived, do you believe that the average sojourn time in the treatment group is $2.13$ seconds longer than that in the control group?**
+```{r}
+upper = qnorm(0.975,t0,sqrt(v_estimator))
+lower = qnorm(0.025,t0,sqrt(v_estimator))
+
+
+print(paste0('confidence interval is ', lower, ', ', upper))
+print('since 2.13 doesnt fall under the confidence interval, we do not believe the average sojourn time')
+```
+
+Now we consider a different test statistic $G=\max\{Y_1^{obs}\}-\min\{Y_0^{obs}\}$.
+
+**Generate the EXACT Probability Distribution of this test statistic $G$, under $H_0$ in a completely randomized experiment with equal number of subjects in each group. Report the the 25%, 50%, 75% quantile of the distribution of this new test statistic $G$, and variance. Plot the histogram of this test statistic $G$ with `breaks = 100`. **
+```{r message=FALSE, warning=FALSE}
+T_results_3 <- c()
+
+for(i in 1:nrow(vectors)) {
+  row <- vectors[i,]
+  YobsT_3 <- max(df[which(row==1),'Y1'])
+  YobsC_3 <- min(df[which(row==0),'Y0'])
+  add_in_3 <- YobsT_3 - YobsC_3
+  T_results_3 <- c(T_results_3, add_in_3)
+}
+
+print(paste0('quantile 25% is ', as.character(quantile(T_results_3,0.25))))
+print(paste0('quantile 50% is ', as.character(quantile(T_results_3,0.5))))
+print(paste0('quantile 75% is ', as.character(quantile(T_results_3,0.75))))
+print(paste0('var is', as.character(var(T_results_3))))
+
+hist(T_results_3,breaks=100)
+```
+
+Note that when $N$ (number of subject) is large (e.g., $N=50$),  deriving the exact distribution of the statistic under Fisher Sharp NULL Hypothesis becomes very tedious (you can have a try, I don't know how long it will take you to run the code). In this case, we often use "bootstrap", i.e., we will re-execute the randomized assignment procedure for $M$ times. Then, for each iteration, we randomly assign half of the subjects to the control group and the remaining to the treatment group, and we compute the value of our test statistic.
+
+**(j)-(0.5') Still use $T$ as the test statistic, set $M=100000$. Report the 25%, 50%, 75% quantile of the distribution of the test statistic $T$, and variance. Plot the histogram of this test statistic $T$ with `breaks = 50`. Compare the results with (c) and describe your findings.**
+```{r message=FALSE, warning=FALSE}
+m = 100000
+T_results_4 <- c()
+
+for (i in seq(1,m,1)){
+  row = sample(rep(0:1,each=11))
+  YobsT_4 <- mean(df[which(row==1),'Y1'])
+  YobsC_4 <- mean(df[which(row==0),'Y0'])
+  add_in_4 <- YobsT_4 - YobsC_4
+  T_results_4 <- c(T_results_4, add_in_4)
+}
+
+print(paste0('quantile 25% is ', as.character(quantile(T_results_4,0.25))))
+print(paste0('quantile 50% is ', as.character(quantile(T_results_4,0.5))))
+print(paste0('quantile 75% is ', as.character(quantile(T_results_4,0.75))))
+print(paste0('var is', as.character(var(T_results_4))))
+print('distribution follows c very similarly in mean and variance. Given the large sample size, both distributions should appear very similar')
+
+hist(T_results_4,breaks=50)
+```

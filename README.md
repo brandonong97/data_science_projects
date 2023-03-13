@@ -1,9 +1,7 @@
 # Brandon's Portfolio
 
-Data Science Projects
+# Project 1 Overview: 
 
-# Project 1: 
+# Project 2 Overview: 
 
-# Project 2: 
-
-# Project 3: 
+# Project 3 Overview: 

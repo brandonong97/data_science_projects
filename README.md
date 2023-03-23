@@ -1,4 +1,5 @@
 # Brandon's Portfolio
+### This README is an overview of a few data science related projects. Please refer to the branches for other projects.
 
 ## Project 1 Overview: Comparing different machine learning tools to find the best model for predicting HDB prices
 ### In this example, we will see how linear regression performs before and after regularisation. We will also look at decision trees and random forest in predicting HDB prices. We will be using cross validation where our scoring will be negative root mean square error to find the best performing model on our training data. In this data, we will use dummy variables for our categorical features.
